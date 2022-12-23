@@ -13,13 +13,22 @@ import uz.digital.passportgeneration.databinding.FragmentAddEditBinding
 import uz.digital.passportgeneration.model.Passport
 import uz.digital.passportgeneration.util.snackBar
 import uz.digital.passportgeneration.util.toByteArray
+import uz.digital.passportgeneration.util.toImage
 
 class AddEditFragment : Fragment() {
+
+    private var passport: Passport? = null
 
     private var _binding: FragmentAddEditBinding? = null
     private val binding get() = _binding!!
     private lateinit var region: String
     private lateinit var gender: String
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        passport = arguments?.getParcelable("passport") as? Passport
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -31,6 +40,21 @@ class AddEditFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val database = PassportDatabase(requireContext())
+        if (passport != null) {
+            binding.btnSaveEdit.text = "Edit"
+            binding.apply {
+                name.setText(passport?.name)
+                lastname.setText(passport?.lastName)
+                faName.setText(passport?.fatName)
+                region.setText(passport?.region)
+                address.setText(passport?.address)
+                gender.setText(passport?.gender)
+                getDate.setText(passport?.gotDate)
+                lifeTime.setText(passport?.lifeTime)
+                city.setText(passport?.city)
+                imageView.setImageBitmap(passport?.image?.toImage())
+            }
+        }
         binding.btnSaveEdit.setOnClickListener {
             val name = binding.name.text.toString().trim()
             val lastname = binding.lastname.text.toString().trim()
@@ -39,21 +63,28 @@ class AddEditFragment : Fragment() {
             val address = binding.address.text.toString().trim()
             val gotDate = binding.getDate.text.toString().trim()
             val lifeTime = binding.lifeTime.text.toString().trim()
-            database.savePassport(
-                Passport(
-                    name = name,
-                    lastName = lastname,
-                    fatName = fatName,
-                    region = region,
-                    city = city,
-                    address = address,
-                    gotDate = gotDate,
-                    lifeTime = lifeTime,
-                    gender = gender,
-                    image = binding.imageView.toByteArray()
-                )
+            val savePassport = Passport(
+                id = passport?.id ?: 0,
+                name = name,
+                lastName = lastname,
+                fatName = fatName,
+                region = region,
+                city = city,
+                address = address,
+                gotDate = gotDate,
+                lifeTime = lifeTime,
+                gender = gender,
+                image = binding.imageView.toByteArray()
             )
-            snackBar("Saved")
+            if (passport != null) {
+                database.updatePassport(savePassport)
+                snackBar("Updated")
+            } else {
+                database.savePassport(
+                    savePassport
+                )
+                snackBar("Saved")
+            }
         }
         binding.imageView.setOnClickListener {
             launcher.launch("image/*")
@@ -72,7 +103,9 @@ class AddEditFragment : Fragment() {
         binding.gender.setOnItemClickListener { parent, view, position, id ->
             gender = genders[position]
         }
+
     }
+
 
     private val launcher = registerForActivityResult(ActivityResultContracts.GetContent()) {
         binding.imageView.setImageURI(it)

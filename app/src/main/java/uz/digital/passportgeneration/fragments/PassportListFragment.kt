@@ -4,13 +4,16 @@ import android.os.Bundle
 import android.util.Log
 import android.view.*
 import androidx.appcompat.widget.SearchView
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import uz.digital.passportgeneration.MainActivity
 import uz.digital.passportgeneration.R
+import uz.digital.passportgeneration.adapter.PassportAdapter
 import uz.digital.passportgeneration.database.PassportDatabase
 import uz.digital.passportgeneration.databinding.FragmentPassportListBinding
 
@@ -18,6 +21,8 @@ class PassportListFragment : Fragment() {
 
     private var _binding: FragmentPassportListBinding? = null
     private val binding get() = _binding!!
+    private val passportAdapter by lazy { PassportAdapter() }
+    private val passportDatabase by lazy { PassportDatabase(requireContext()) }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -50,14 +55,33 @@ class PassportListFragment : Fragment() {
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                Log.d("@@@", "onQueryTextChange: $newText")
+                val list = database.getPassports().toMutableList().filter {
+                    it.name.lowercase().contains(newText!!) ||
+                            it.lastName.lowercase().contains(newText)
+                }
+                passportAdapter.filter(list.toMutableList())
                 return true
             }
         }, viewLifecycleOwner, Lifecycle.State.RESUMED)
         binding.floatingActionButton.setOnClickListener {
             findNavController().navigate(R.id.action_passportListFragment_to_addEditFragment)
         }
-        Log.d("@@@", "onViewCreated: ${database.getPassports()}")
+        binding.rv.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = passportAdapter
+        }
+        passportAdapter.passportList = database.getPassports().toMutableList()
+        passportAdapter.onClick = {
+            val bundle = bundleOf("passport" to it)
+            findNavController().navigate(R.id.action_passportListFragment_to_detailFragment, bundle)
+        }
+        passportAdapter.onEdit = {
+            val bundle = bundleOf("passport" to it)
+            findNavController().navigate(
+                R.id.action_passportListFragment_to_addEditFragment,
+                bundle
+            )
+        }
     }
 
 

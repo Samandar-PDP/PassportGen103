@@ -1,5 +1,9 @@
 package uz.digital.passportgeneration.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Passport(
     val id: Int = 0,
     val name: String,
@@ -12,7 +16,7 @@ data class Passport(
     val lifeTime: String,
     val gender: String,
     val image: ByteArray
-) {
+): Parcelable {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
